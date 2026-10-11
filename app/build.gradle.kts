@@ -37,6 +37,11 @@ android {
     }
 }
 
+// Room: экспорт JSON-схем для написания миграций между версиями БД
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.13.1")
