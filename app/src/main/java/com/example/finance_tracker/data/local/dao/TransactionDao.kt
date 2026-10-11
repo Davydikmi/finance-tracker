@@ -1,0 +1,70 @@
+package com.example.finance_tracker.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import com.example.finance_tracker.data.local.entity.TransactionEntity
+import com.example.finance_tracker.domain.model.TransactionType
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * DAO for the "transactions" table.
+ *
+ * The 'EXPENSE' / 'INCOME' literals in the SUM queries below match the
+ * string form [com.example.finance_tracker.data.local.Converters] persists
+ * for [TransactionType] (the enum name).
+ */
+@Dao
+interface TransactionDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(transaction: TransactionEntity): Long
+
+    @Update
+    suspend fun update(transaction: TransactionEntity)
+
+    @Delete
+    suspend fun delete(transaction: TransactionEntity)
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    fun getAll(): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE id = :id")
+    suspend fun getById(id: Long): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE date BETWEEN :start AND :end ORDER BY date DESC")
+    fun getByDateRange(start: Long, end: Long): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE type = :type ORDER BY date DESC")
+    fun getByType(type: TransactionType): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE description LIKE '%' || :query || '%' ORDER BY date DESC")
+    fun search(query: String): Flow<List<TransactionEntity>>
+
+    /** Returns null when there are no matching rows (SUM over an empty set). */
+    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'EXPENSE' AND date BETWEEN :start AND :end")
+    suspend fun getTotalExpenses(start: Long, end: Long): Double?
+
+    /** Returns null when there are no matching rows (SUM over an empty set). */
+    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'INCOME' AND date BETWEEN :start AND :end")
+    suspend fun getTotalIncome(start: Long, end: Long): Double?
+
+    /** Returns null when there are no matching rows (SUM over an empty set). */
+    @Query("SELECT SUM(amount) FROM transactions WHERE type = 'EXPENSE' AND categoryId = :categoryId AND date BETWEEN :start AND :end")
+    suspend fun getExpensesByCategory(categoryId: Long, start: Long, end: Long): Double?
+
+    /**
+     * Recurring transactions whose next occurrence is due at or before [now].
+     * Rows with a NULL nextRecurrenceDate never match (NULL comparison), so
+     * non-recurring entries are excluded even without checking isRecurring.
+     * Synchronous list (no Flow) — called from the WorkManager recurrence job.
+     */
+    @Query("SELECT * FROM transactions WHERE isRecurring = 1 AND nextRecurrenceDate <= :now")
+    suspend fun getDueRecurring(now: Long): List<TransactionEntity>
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT 5")
+    fun getLast5(): Flow<List<TransactionEntity>>
+}
