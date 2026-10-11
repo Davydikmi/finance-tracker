@@ -37,4 +37,8 @@ interface CategoryDao {
     /** Number of transactions still pointing at this category, used to warn before deletion. */
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun countTransactionsInCategory(categoryId: Long): Int
+
+    /** Общее число категорий — используется AppInitializer'ом при первичном заполнении БД. */
+    @Query("SELECT COUNT(*) FROM categories")
+    suspend fun getCount(): Int
 }
