@@ -25,6 +25,7 @@ object Formatters {
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
+    private val fullDateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
     private val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru"))
 
     fun money(amount: Double): String = moneyFormat.format(amount) + " ₽"
@@ -39,6 +40,9 @@ object Formatters {
     fun time(millis: Long): String =
         Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalTime()
             .format(timeFormatter)
+
+    /** "12 октября" — для выбранной вручную даты. */
+    fun fullDate(date: LocalDate): String = date.format(fullDateFormatter)
 
     /** "Сегодня" / "Вчера" / "12 окт". */
     fun dateLabel(millis: Long): String {

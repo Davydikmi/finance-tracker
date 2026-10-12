@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,6 +39,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.finance_tracker.ui.screens.addtransaction.AddTransactionScreen
 import com.example.finance_tracker.ui.screens.home.HomeScreen
 import com.example.finance_tracker.ui.screens.placeholder.PlaceholderScreen
 import com.example.finance_tracker.ui.theme.CardBg
@@ -48,10 +48,10 @@ import com.example.finance_tracker.ui.theme.FabDark
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
 import com.example.finance_tracker.ui.theme.ScreenBg
-import kotlinx.coroutines.launch
 
 object Routes {
     const val HOME = "home"
+    const val ADD_TRANSACTION = "add_transaction"
     const val HISTORY = "history"
     const val STATS = "stats"
     const val JARS = "jars"
@@ -81,7 +81,6 @@ private val bottomNavItems = listOf(
 fun FinanceApp() {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -89,8 +88,9 @@ fun FinanceApp() {
         containerColor = ScreenBg,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column {
-                HorizontalDivider(color = DividerColor)
+            if (currentRoute != Routes.ADD_TRANSACTION) {
+                Column {
+                    HorizontalDivider(color = DividerColor)
                 NavigationBar(
                     containerColor = Color.White,
                     tonalElevation = 0.dp
@@ -127,23 +127,26 @@ fun FinanceApp() {
                         )
                     }
                 }
+                }
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        snackbarHostState.showSnackbar("Экран добавления транзакции — следующий шаг")
-                    }
-                },
-                containerColor = FabDark,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Добавить операцию"
-                )
+            if (currentRoute == Routes.HOME) {
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(Routes.ADD_TRANSACTION) {
+                            launchSingleTop = true
+                        }
+                    },
+                    containerColor = FabDark,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Добавить операцию"
+                    )
+                }
             }
         }
     ) { padding ->
@@ -155,6 +158,12 @@ fun FinanceApp() {
                 .padding(padding)
         ) {
             composable(Routes.HOME) { HomeScreen() }
+            composable(Routes.ADD_TRANSACTION) {
+                AddTransactionScreen(
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() }
+                )
+            }
             composable(Routes.HISTORY) { PlaceholderScreen("История") }
             composable(Routes.STATS) { PlaceholderScreen("Статистика") }
             composable(Routes.JARS) { PlaceholderScreen("Копилки") }
