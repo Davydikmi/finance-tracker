@@ -40,6 +40,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.finance_tracker.ui.screens.addtransaction.AddTransactionScreen
+import com.example.finance_tracker.ui.screens.history.HistoryScreen
 import com.example.finance_tracker.ui.screens.home.HomeScreen
 import com.example.finance_tracker.ui.screens.placeholder.PlaceholderScreen
 import com.example.finance_tracker.ui.theme.CardBg
@@ -164,7 +165,7 @@ fun FinanceApp() {
                     onSaved = { navController.popBackStack() }
                 )
             }
-            composable(Routes.HISTORY) { PlaceholderScreen("История") }
+            composable(Routes.HISTORY) { HistoryScreen() }
             composable(Routes.STATS) { PlaceholderScreen("Статистика") }
             composable(Routes.JARS) { PlaceholderScreen("Копилки") }
             composable(Routes.MORE) { PlaceholderScreen("Ещё") }

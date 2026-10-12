@@ -26,6 +26,7 @@ object Formatters {
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
     private val fullDateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
+    private val dayHeaderFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", Locale("ru"))
     private val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru"))
 
     fun money(amount: Double): String = moneyFormat.format(amount) + " ₽"
@@ -34,8 +35,14 @@ object Formatters {
 
     fun income(amount: Double): String = "+${moneyFormat.format(amount)} ₽"
 
-    fun currentMonthTitle(): String =
-        monthFormatter.format(YearMonth.now()).replaceFirstChar { it.uppercase() }
+    fun currentMonthTitle(): String = monthTitle(YearMonth.now())
+
+    /** "Октябрь 2026" — заголовок выбранного месяца. */
+    fun monthTitle(month: YearMonth): String =
+        monthFormatter.format(month).replaceFirstChar { it.uppercase() }
+
+    /** "12 октября, суббота" — заголовок дня в истории. */
+    fun dayHeader(date: LocalDate): String = date.format(dayHeaderFormatter)
 
     fun time(millis: Long): String =
         Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalTime()

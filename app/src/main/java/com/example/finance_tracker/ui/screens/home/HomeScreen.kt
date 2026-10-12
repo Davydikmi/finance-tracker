@@ -41,10 +41,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.finance_tracker.domain.model.SavingsJar
-import com.example.finance_tracker.domain.model.TransactionDetail
-import com.example.finance_tracker.domain.model.TransactionType
-import com.example.finance_tracker.ui.components.CategoryDot
 import com.example.finance_tracker.ui.components.Formatters
+import com.example.finance_tracker.ui.components.TransactionListItem
 import com.example.finance_tracker.ui.theme.AccentBlue
 import com.example.finance_tracker.ui.theme.CardBg
 import com.example.finance_tracker.ui.theme.CardBgLight
@@ -139,7 +137,7 @@ private fun HomeContent(state: HomeUiState) {
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                 ) {
                     state.recentTransactions.forEachIndexed { index, transaction ->
-                        TransactionRow(transaction)
+                        TransactionListItem(transaction = transaction)
                         if (index < state.recentTransactions.lastIndex) {
                             HorizontalDivider(color = DividerColor)
                         }
@@ -284,52 +282,5 @@ private fun JarCard(jar: SavingsJar) {
                 Text(text = "без цели", fontSize = 11.sp, color = InkSecondary)
             }
         }
-    }
-}
-
-@Composable
-private fun TransactionRow(transaction: TransactionDetail) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CategoryDot(color = transaction.categoryColor)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            val title = transaction.description
-                ?: transaction.categoryName
-                ?: "Без категории"
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = InkPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(2.dp))
-            val categoryPart = transaction.categoryName?.let { " · $it" }.orEmpty()
-            Text(
-                text = "${Formatters.dateLabel(transaction.date)}, ${Formatters.time(transaction.date)}$categoryPart",
-                fontSize = 12.sp,
-                color = InkSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        val isExpense = transaction.type == TransactionType.EXPENSE
-        Text(
-            text = if (isExpense) {
-                Formatters.expense(transaction.amount)
-            } else {
-                Formatters.income(transaction.amount)
-            },
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isExpense) ExpenseRed else IncomeGreen
-        )
     }
 }
