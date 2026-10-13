@@ -43,6 +43,7 @@ import com.example.finance_tracker.ui.screens.addtransaction.AddTransactionScree
 import com.example.finance_tracker.ui.screens.history.HistoryScreen
 import com.example.finance_tracker.ui.screens.home.HomeScreen
 import com.example.finance_tracker.ui.screens.jars.JarsScreen
+import com.example.finance_tracker.ui.screens.stats.StatsScreen
 import com.example.finance_tracker.ui.screens.placeholder.PlaceholderScreen
 import com.example.finance_tracker.ui.theme.CardBg
 import com.example.finance_tracker.ui.theme.DividerColor
@@ -167,7 +168,7 @@ fun FinanceApp() {
                 )
             }
             composable(Routes.HISTORY) { HistoryScreen() }
-            composable(Routes.STATS) { PlaceholderScreen("Статистика") }
+            composable(Routes.STATS) { StatsScreen() }
             composable(Routes.JARS) { JarsScreen() }
             composable(Routes.MORE) { PlaceholderScreen("Ещё") }
         }

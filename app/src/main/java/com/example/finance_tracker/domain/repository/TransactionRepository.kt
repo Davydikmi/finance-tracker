@@ -1,5 +1,6 @@
 package com.example.finance_tracker.domain.repository
 
+import com.example.finance_tracker.domain.model.CategoryExpense
 import com.example.finance_tracker.domain.model.Transaction
 import com.example.finance_tracker.domain.model.TransactionDetail
 import kotlinx.coroutines.flow.Flow
@@ -23,4 +24,7 @@ interface TransactionRepository {
 
     /** null — если доходов в периоде не было. */
     suspend fun getTotalIncome(start: Long, end: Long): Double?
+
+    /** Расходы периода по категориям, по убыванию суммы (для статистики). */
+    fun observeExpensesByCategory(start: Long, end: Long): Flow<List<CategoryExpense>>
 }

@@ -3,6 +3,7 @@ package com.example.finance_tracker.data.repository
 import com.example.finance_tracker.data.local.dao.TransactionDao
 import com.example.finance_tracker.data.mapper.toDomain
 import com.example.finance_tracker.data.mapper.toEntity
+import com.example.finance_tracker.domain.model.CategoryExpense
 import com.example.finance_tracker.domain.model.Transaction
 import com.example.finance_tracker.domain.model.TransactionDetail
 import com.example.finance_tracker.domain.repository.TransactionRepository
@@ -39,4 +40,7 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun getTotalIncome(start: Long, end: Long): Double? =
         transactionDao.getTotalIncome(start, end)
+
+    override fun observeExpensesByCategory(start: Long, end: Long): Flow<List<CategoryExpense>> =
+        transactionDao.observeExpensesByCategory(start, end)
 }

@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.finance_tracker.data.local.entity.TransactionEntity
 import com.example.finance_tracker.data.local.relation.TransactionWithCategory
+import com.example.finance_tracker.domain.model.CategoryExpense
 import com.example.finance_tracker.domain.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 
@@ -76,4 +77,24 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT 5")
     fun getLast5(): Flow<List<TransactionEntity>>
+
+    /**
+     * Расходы периода, сгруппированные по категориям, по убыванию суммы.
+     * Категории с id = 0 ("без категории") дают categoryName = null.
+     * Room маппит колонки запроса в доменную модель CategoryExpense по именам.
+     */
+    @Query(
+        """
+        SELECT t.categoryId AS categoryId,
+               c.name AS categoryName,
+               c.color AS categoryColor,
+               SUM(t.amount) AS amount
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.categoryId
+        WHERE t.type = 'EXPENSE' AND t.date BETWEEN :start AND :end
+        GROUP BY t.categoryId
+        ORDER BY amount DESC
+        """
+    )
+    fun observeExpensesByCategory(start: Long, end: Long): Flow<List<CategoryExpense>>
 }

@@ -27,7 +27,10 @@ object Formatters {
     private val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
     private val fullDateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
     private val dayHeaderFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", Locale("ru"))
+    private val weekdayShortFormatter = DateTimeFormatter.ofPattern("EE", Locale("ru"))
+    private val monthShortFormatter = DateTimeFormatter.ofPattern("LLL", Locale("ru"))
     private val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru"))
+    private val compactFormat = DecimalFormat("0.#").apply { decimalFormatSymbols = symbols }
 
     fun money(amount: Double): String = moneyFormat.format(amount) + " ₽"
 
@@ -43,6 +46,20 @@ object Formatters {
 
     /** "12 октября, суббота" — заголовок дня в истории. */
     fun dayHeader(date: LocalDate): String = date.format(dayHeaderFormatter)
+
+    /** "пн" / "вт" — короткий день недели. */
+    fun weekdayShort(date: LocalDate): String = date.format(weekdayShortFormatter)
+
+    /** "янв" — короткий месяц. */
+    fun monthShort(month: YearMonth): String =
+        month.format(monthShortFormatter).replaceFirstChar { it.lowercase() }
+
+    /** Компактные деньги для графики: "42,3 т₽", "1,2 млн ₽". */
+    fun compactMoney(amount: Double): String = when {
+        amount >= 1_000_000 -> "${compactFormat.format(amount / 1_000_000)} млн ₽"
+        amount >= 1_000 -> "${compactFormat.format(amount / 1_000)} т₽"
+        else -> money(amount)
+    }
 
     fun time(millis: Long): String =
         Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalTime()
