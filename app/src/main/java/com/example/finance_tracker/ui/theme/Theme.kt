@@ -11,10 +11,14 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun FinancetrackerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color (Android 12+) выключен по умолчанию: у приложения свой брендовый дизайн.
+    // Dynamic color (Android 12+) выключен: у приложения свой брендовый дизайн.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // Токены для экранов (Palette.kt) обновляем до построения контента,
+    // чтобы один кадр не отрисовался со старой палитрой.
+    applyPalette(darkTheme)
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

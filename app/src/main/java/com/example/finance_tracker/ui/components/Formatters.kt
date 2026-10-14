@@ -1,5 +1,6 @@
 package com.example.finance_tracker.ui.components
 
+import com.example.finance_tracker.core.CurrencyConfig
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.Instant
@@ -32,11 +33,14 @@ object Formatters {
     private val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru"))
     private val compactFormat = DecimalFormat("0.#").apply { decimalFormatSymbols = symbols }
 
-    fun money(amount: Double): String = moneyFormat.format(amount) + " ₽"
+    fun money(amount: Double): String =
+        moneyFormat.format(amount) + " " + CurrencyConfig.symbol
 
-    fun expense(amount: Double): String = "−${moneyFormat.format(amount)} ₽"
+    fun expense(amount: Double): String =
+        "−" + moneyFormat.format(amount) + " " + CurrencyConfig.symbol
 
-    fun income(amount: Double): String = "+${moneyFormat.format(amount)} ₽"
+    fun income(amount: Double): String =
+        "+" + moneyFormat.format(amount) + " " + CurrencyConfig.symbol
 
     fun currentMonthTitle(): String = monthTitle(YearMonth.now())
 
@@ -56,8 +60,10 @@ object Formatters {
 
     /** Компактные деньги для графики: "42,3 т₽", "1,2 млн ₽". */
     fun compactMoney(amount: Double): String = when {
-        amount >= 1_000_000 -> "${compactFormat.format(amount / 1_000_000)} млн ₽"
-        amount >= 1_000 -> "${compactFormat.format(amount / 1_000)} т₽"
+        amount >= 1_000_000 ->
+            "${compactFormat.format(amount / 1_000_000)} млн ${CurrencyConfig.symbol}"
+        amount >= 1_000 ->
+            "${compactFormat.format(amount / 1_000)} т${CurrencyConfig.symbol}"
         else -> money(amount)
     }
 

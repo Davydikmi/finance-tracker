@@ -58,10 +58,12 @@ import com.example.finance_tracker.domain.model.SavingsJar
 import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.theme.AccentBlue
 import com.example.finance_tracker.ui.theme.CardBg
+import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.ExpenseRed
 import com.example.finance_tracker.ui.theme.FabDark
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import com.example.finance_tracker.ui.theme.OnAccent
 import com.example.finance_tracker.ui.theme.ScreenBg
 
 /**
@@ -241,7 +243,7 @@ private fun JarCard(
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = AccentBlue,
-                    trackColor = Color.White
+                    trackColor = CardSolid
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -261,7 +263,7 @@ private fun JarCard(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = FabDark,
-                        contentColor = Color.White
+                        contentColor = OnAccent
                     )
                 ) {
                     Text(text = "Отложить", fontSize = 14.sp)
@@ -287,7 +289,7 @@ private fun CreateJarButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(top = 14.dp),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = CardSolid,
         border = androidx.compose.foundation.BorderStroke(1.dp, InkPrimary)
     ) {
         Row(
@@ -393,7 +395,7 @@ private fun CreateJarDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = Color.White
+                    unfocusedBorderColor = ScreenBg
                 )
             )
             Spacer(Modifier.height(12.dp))
@@ -407,7 +409,7 @@ private fun CreateJarDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = Color.White
+                    unfocusedBorderColor = ScreenBg
                 )
             )
             Spacer(Modifier.height(16.dp))
@@ -432,7 +434,7 @@ private fun CreateJarDialog(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = FabDark,
-                    contentColor = Color.White,
+                    contentColor = OnAccent,
                     disabledContainerColor = CardBg,
                     disabledContentColor = InkSecondary
                 )
@@ -505,7 +507,7 @@ private fun AmountDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = Color.White
+                    unfocusedBorderColor = ScreenBg
                 )
             )
             if (!isDeposit && amount != null && amount > jar.savedAmount) {
@@ -526,7 +528,7 @@ private fun AmountDialog(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = FabDark,
-                        contentColor = Color.White,
+                        contentColor = OnAccent,
                         disabledContainerColor = CardBg,
                         disabledContentColor = InkSecondary
                     )

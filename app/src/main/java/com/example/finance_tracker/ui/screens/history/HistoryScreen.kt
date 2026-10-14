@@ -48,6 +48,7 @@ import com.example.finance_tracker.ui.theme.ExpenseRed
 import com.example.finance_tracker.ui.theme.IncomeGreen
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import com.example.finance_tracker.ui.theme.OnAccent
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -263,7 +264,7 @@ private fun FilterChip(label: String, isActive: Boolean, onClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = if (isActive) Color.White else InkPrimary
+            color = if (isActive) OnAccent else InkPrimary
         )
     }
 }

@@ -40,21 +40,25 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.finance_tracker.ui.screens.addtransaction.AddTransactionScreen
+import com.example.finance_tracker.ui.screens.categories.CategoriesScreen
 import com.example.finance_tracker.ui.screens.history.HistoryScreen
 import com.example.finance_tracker.ui.screens.home.HomeScreen
 import com.example.finance_tracker.ui.screens.jars.JarsScreen
+import com.example.finance_tracker.ui.screens.more.MoreScreen
 import com.example.finance_tracker.ui.screens.stats.StatsScreen
-import com.example.finance_tracker.ui.screens.placeholder.PlaceholderScreen
 import com.example.finance_tracker.ui.theme.CardBg
+import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.DividerColor
 import com.example.finance_tracker.ui.theme.FabDark
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import com.example.finance_tracker.ui.theme.OnAccent
 import com.example.finance_tracker.ui.theme.ScreenBg
 
 object Routes {
     const val HOME = "home"
     const val ADD_TRANSACTION = "add_transaction"
+    const val CATEGORIES = "categories"
     const val HISTORY = "history"
     const val STATS = "stats"
     const val JARS = "jars"
@@ -91,11 +95,11 @@ fun FinanceApp() {
         containerColor = ScreenBg,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (currentRoute != Routes.ADD_TRANSACTION) {
+            if (currentRoute != Routes.ADD_TRANSACTION && currentRoute != Routes.CATEGORIES) {
                 Column {
                     HorizontalDivider(color = DividerColor)
                 NavigationBar(
-                    containerColor = Color.White,
+                    containerColor = CardSolid,
                     tonalElevation = 0.dp
                 ) {
                     bottomNavItems.forEach { item ->
@@ -142,7 +146,7 @@ fun FinanceApp() {
                         }
                     },
                     containerColor = FabDark,
-                    contentColor = Color.White,
+                    contentColor = OnAccent,
                     shape = CircleShape
                 ) {
                     Icon(
@@ -170,7 +174,16 @@ fun FinanceApp() {
             composable(Routes.HISTORY) { HistoryScreen() }
             composable(Routes.STATS) { StatsScreen() }
             composable(Routes.JARS) { JarsScreen() }
-            composable(Routes.MORE) { PlaceholderScreen("Ещё") }
+            composable(Routes.MORE) {
+                MoreScreen(
+                    onOpenCategories = {
+                        navController.navigate(Routes.CATEGORIES) { launchSingleTop = true }
+                    }
+                )
+            }
+            composable(Routes.CATEGORIES) {
+                CategoriesScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }

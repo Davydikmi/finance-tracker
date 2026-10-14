@@ -47,9 +47,10 @@ object DatabaseModule {
                     notificationsEnabled,
                     subscriptionRemindersEnabled,
                     checkTimeHour,
-                    exchangeSource
+                    exchangeSource,
+                    language
                 ) VALUES (
-                    1, 0.0, 0.0, 'EUR', 1, 'system', 1, 1, 9, 'nbrb'
+                    1, 0.0, 0.0, 'BYN', 1, 'system', 1, 1, 9, 'nbrb', 'ru'
                 )
                 """.trimIndent()
             )
@@ -65,6 +66,7 @@ object DatabaseModule {
             AppDatabase.DATABASE_NAME
         )
             .addCallback(seedSettingsCallback)
+            .addMigrations(AppDatabase.MIGRATION_1_2)
             .build()
 
     @Provides

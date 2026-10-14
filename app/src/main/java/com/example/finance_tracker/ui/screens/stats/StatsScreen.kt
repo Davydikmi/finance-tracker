@@ -42,10 +42,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.theme.AccentBlue
 import com.example.finance_tracker.ui.theme.CardBg
+import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.ExpenseRed
 import com.example.finance_tracker.ui.theme.IncomeGreen
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import com.example.finance_tracker.ui.theme.OnAccent
 import com.example.finance_tracker.ui.theme.ScreenBg
 
 /**
@@ -140,7 +142,7 @@ private fun PeriodPills(selected: StatsPeriod, onSelect: (StatsPeriod) -> Unit) 
                         textAlign = TextAlign.Center,
                         fontSize = 14.sp,
                         fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (active) Color.White else InkSecondary
+                        color = if (active) OnAccent else InkSecondary
                     )
                 }
             }
@@ -374,7 +376,7 @@ private fun TopCategories(categories: List<CategoryShare>) {
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = share.color?.let { Color(it) } ?: AccentBlue,
-                    trackColor = Color.White
+                    trackColor = CardSolid
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(

@@ -46,6 +46,7 @@ import com.example.finance_tracker.ui.components.TransactionListItem
 import com.example.finance_tracker.ui.theme.AccentBlue
 import com.example.finance_tracker.ui.theme.CardBg
 import com.example.finance_tracker.ui.theme.CardBgLight
+import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.DividerColor
 import com.example.finance_tracker.ui.theme.ExpenseRed
 import com.example.finance_tracker.ui.theme.IncomeGreen
@@ -190,7 +191,7 @@ private fun AllowanceCard(dailyAllowance: Double?, modifier: Modifier = Modifier
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(shape = CircleShape, color = Color.White) {
+            Surface(shape = CircleShape, color = CardSolid) {
                 Icon(
                     imageVector = Icons.Outlined.Schedule,
                     contentDescription = null,
@@ -270,7 +271,7 @@ private fun JarCard(jar: SavingsJar) {
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = AccentBlue,
-                    trackColor = Color.White.copy(alpha = 0.6f)
+                    trackColor = CardSolid.copy(alpha = 0.6f)
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(

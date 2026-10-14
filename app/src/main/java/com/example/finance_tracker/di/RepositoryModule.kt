@@ -4,10 +4,12 @@ import com.example.finance_tracker.data.repository.BudgetRepositoryImpl
 import com.example.finance_tracker.data.repository.CategoryRepositoryImpl
 import com.example.finance_tracker.data.repository.SavingsJarRepositoryImpl
 import com.example.finance_tracker.data.repository.TransactionRepositoryImpl
+import com.example.finance_tracker.data.repository.SettingsRepositoryImpl
 import com.example.finance_tracker.domain.repository.BudgetRepository
 import com.example.finance_tracker.domain.repository.CategoryRepository
 import com.example.finance_tracker.domain.repository.SavingsJarRepository
 import com.example.finance_tracker.domain.repository.TransactionRepository
+import com.example.finance_tracker.domain.repository.SettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -33,6 +35,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCategoryRepository(impl: CategoryRepositoryImpl): CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 
     @Binds
     @Singleton

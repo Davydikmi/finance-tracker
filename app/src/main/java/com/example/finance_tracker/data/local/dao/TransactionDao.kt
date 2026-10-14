@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.finance_tracker.data.local.entity.TransactionEntity
 import com.example.finance_tracker.data.local.relation.TransactionWithCategory
@@ -41,10 +42,12 @@ interface TransactionDao {
     fun getByDateRange(start: Long, end: Long): Flow<List<TransactionEntity>>
 
     /** Все транзакции, сразу с категорией (JOIN через @Relation). */
+    @Transaction
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllWithCategory(): Flow<List<TransactionWithCategory>>
 
     /** Транзакции периода, сразу с категорией (JOIN через @Relation). */
+    @Transaction
     @Query("SELECT * FROM transactions WHERE date BETWEEN :start AND :end ORDER BY date DESC")
     fun getByDateRangeWithCategory(start: Long, end: Long): Flow<List<TransactionWithCategory>>
 

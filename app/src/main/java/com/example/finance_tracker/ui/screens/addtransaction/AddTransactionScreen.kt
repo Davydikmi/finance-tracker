@@ -66,9 +66,11 @@ import com.example.finance_tracker.domain.model.TransactionType
 import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.theme.AccentBlue
 import com.example.finance_tracker.ui.theme.CardBg
+import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.DividerColor
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import com.example.finance_tracker.ui.theme.OnAccent
 import com.example.finance_tracker.ui.theme.ScreenBg
 import java.time.Instant
 import java.time.LocalDate
@@ -172,7 +174,7 @@ fun AddTransactionScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = InkPrimary,
-                    contentColor = Color.White,
+                    contentColor = OnAccent,
                     disabledContainerColor = CardBg,
                     disabledContentColor = InkSecondary
                 )
@@ -244,7 +246,7 @@ private fun RowScope.TypeOption(
             textAlign = TextAlign.Center,
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) Color.White else InkSecondary
+            color = if (selected) OnAccent else InkSecondary
         )
     }
 }
@@ -401,7 +403,7 @@ private fun DateOptionPill(
             textAlign = TextAlign.Center,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = if (selected) Color.White else InkPrimary
+            color = if (selected) OnAccent else InkPrimary
         )
     }
 }
@@ -417,8 +419,8 @@ private fun DescriptionField(value: String, onValueChange: (String) -> Unit) {
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = DividerColor,
             focusedBorderColor = InkPrimary,
-            unfocusedContainerColor = Color.White,
-            focusedContainerColor = Color.White
+            unfocusedContainerColor = CardSolid,
+            focusedContainerColor = CardSolid
         ),
         minLines = 1,
         maxLines = 2
