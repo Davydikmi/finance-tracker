@@ -45,6 +45,7 @@ ksp {
 dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.activity:activity-compose:1.9.1")
 
@@ -97,6 +98,11 @@ dependencies {
 
     // Утилиты
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // ML Kit: распознавание текста чеков (локально, офлайн).
+    // Латинская модель: суммы/даты (цифры) распознаёт; кириллица не поддерживается ML Kit v2.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Тесты
     testImplementation("junit:junit:4.13.2")

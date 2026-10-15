@@ -9,6 +9,12 @@ interface BudgetRepository {
     /** Бюджет месяца; null, пока не задан. monthYear — "YYYY-MM". */
     fun observeMonthlyBudget(monthYear: String): Flow<Budget?>
 
+    /**
+     * Лимит трат на сегодня: (бюджет месяца − потрачено) / осталось дней.
+     * null — бюджет не задан; никогда не отрицательный.
+     */
+    fun getDailySpendingLimit(): Flow<Double?>
+
     /** Создаёт или обновляет бюджет месяца, сохраняя флаги уведомлений. */
     suspend fun setMonthlyBudget(monthYear: String, totalLimit: Double)
 

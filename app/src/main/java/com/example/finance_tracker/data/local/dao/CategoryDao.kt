@@ -34,6 +34,10 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun getById(id: Long): CategoryEntity?
 
+    /** Системный поиск категории по имени и типу (например, «Копилка»). */
+    @Query("SELECT * FROM categories WHERE name = :name AND type = :type LIMIT 1")
+    suspend fun getByNameAndType(name: String, type: TransactionType): CategoryEntity?
+
     /** Number of transactions still pointing at this category, used to warn before deletion. */
     @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
     suspend fun countTransactionsInCategory(categoryId: Long): Int

@@ -1,112 +1,77 @@
 package com.example.finance_tracker
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
-import com.example.finance_tracker.data.local.dao.CategoryDao
-import com.example.finance_tracker.data.local.dao.TransactionDao
-import com.example.finance_tracker.data.local.entity.CategoryEntity
-import com.example.finance_tracker.data.local.entity.TransactionEntity
-import com.example.finance_tracker.domain.model.TransactionType
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.finance_tracker.domain.model.AppSettings
+import com.example.finance_tracker.presentation.PrefillData
+import com.example.finance_tracker.presentation.toPrefillData
+import com.example.finance_tracker.ui.MainViewModel
+import com.example.finance_tracker.ui.navigation.FinanceApp
 import com.example.finance_tracker.ui.theme.FinancetrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
- * Смоук-тест базы данных: вставляем категорию и транзакцию, читаем обратно.
- * Результат показывается на экране и в Logcat (тег "DB_TEST").
+ * AppCompatActivity (а не ComponentActivity): только AppCompatActivity
+ * применяет per-app локали AppCompatDelegate на устройствах ниже Android 13.
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
-    // Hilt сам внедрит DAO из DatabaseModule.
-    // @AndroidEntryPoint на классе обязателен, иначе поля останутся null.
-    @Inject
-    lateinit var transactionDao: TransactionDao
+    private val mainViewModel: MainViewModel by viewModels()
 
-    @Inject
-    lateinit var categoryDao: CategoryDao
+    /** Предзаполнение из share-intента, ждёт старта навигации. */
+    private var pendingPrefill: PrefillData? = null
 
-    private var dbTestResult by mutableStateOf("Тест БД: запуск…")
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingPrefill = intent?.toPrefillData()
+        requestNotificationPermissionIfNeeded()
         enableEdgeToEdge()
         setContent {
-            FinancetrackerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Финансовый трекер")
-                        Text(dbTestResult)
-                    }
-                }
+            val settings by mainViewModel.settings.collectAsStateWithLifecycle()
+            val darkTheme = when (settings?.themeMode) {
+                AppSettings.THEME_DARK -> true
+                AppSettings.THEME_LIGHT -> false
+                else -> isSystemInDarkTheme()
+            }
+            FinancetrackerTheme(darkTheme = darkTheme) {
+                FinanceApp(consumePendingPrefill = ::takePendingPrefill)
             }
         }
-
-        testDatabase()
     }
 
-    private fun testDatabase() {
-        // lifecycleScope привязан к Activity и отменяется вместе с ней,
-        // в отличие от "голого" CoroutineScope(Dispatchers.IO).
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                // 1. Вставляем тестовую категорию
-                val categoryId = categoryDao.insert(
-                    CategoryEntity(
-                        name = "Тестовая категория",
-                        icon = "restaurant",
-                        color = 0xFF4CAF50,
-                        type = TransactionType.EXPENSE,
-                        isDefault = false
-                    )
-                )
-                Log.d("DB_TEST", "✅ Категория создана с id=$categoryId")
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        pendingPrefill = intent.toPrefillData()
+    }
 
-                // 2. Вставляем тестовую транзакцию
-                val transactionId = transactionDao.insert(
-                    TransactionEntity(
-                        type = TransactionType.EXPENSE,
-                        amount = 150.50,
-                        categoryId = categoryId,
-                        date = System.currentTimeMillis(),
-                        description = "Тестовая транзакция"
-                    )
-                )
-                Log.d("DB_TEST", "✅ Транзакция создана с id=$transactionId")
+    private fun takePendingPrefill(): PrefillData? {
+        val data = pendingPrefill
+        pendingPrefill = null
+        return data
+    }
 
-                // 3. Читаем обратно
-                val transaction = transactionDao.getById(transactionId)
-                Log.d("DB_TEST", "✅ Прочитано: ${transaction?.description}, ${transaction?.amount}")
-
-                Log.d("DB_TEST", "🎉 БД работает полностью!")
-                dbTestResult = "🎉 БД работает: ${transaction?.description} — ${transaction?.amount}"
-            } catch (e: Exception) {
-                Log.e("DB_TEST", "❌ Ошибка БД: ${e.message}", e)
-                dbTestResult = "❌ Ошибка БД: ${e.message}"
-            }
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }

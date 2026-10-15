@@ -3,6 +3,8 @@ package com.example.finance_tracker.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.finance_tracker.data.local.dao.BudgetDao
 import com.example.finance_tracker.data.local.dao.CategoryDao
 import com.example.finance_tracker.data.local.dao.CategoryLimitDao
@@ -38,7 +40,7 @@ import com.example.finance_tracker.data.local.entity.TransactionEntity
         ExchangeRateEntity::class,
         SettingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -62,5 +64,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "finance_tracker.db"
+
+        /** v2: в settings добавлена колонка language ("ru"/"en"). */
+        val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE settings ADD COLUMN language TEXT NOT NULL DEFAULT 'ru'")
+            }
+        }
     }
 }
