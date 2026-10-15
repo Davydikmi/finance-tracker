@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.finance_tracker.core.CurrencyConfig
 import com.example.finance_tracker.domain.model.SavingsJar
 import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.theme.AccentBlue
@@ -395,7 +396,10 @@ private fun CreateJarDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = ScreenBg
+                    unfocusedBorderColor = ScreenBg,
+                    focusedTextColor = InkPrimary,
+                    unfocusedTextColor = InkPrimary,
+                    cursorColor = InkPrimary
                 )
             )
             Spacer(Modifier.height(12.dp))
@@ -403,13 +407,16 @@ private fun CreateJarDialog(
                 value = targetInput,
                 onValueChange = { targetInput = formatAmountInput(it) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Цель, ₽ (необязательно)") },
+                label = { Text("Цель, ${CurrencyConfig.symbol} (необязательно)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = ScreenBg
+                    unfocusedBorderColor = ScreenBg,
+                    focusedTextColor = InkPrimary,
+                    unfocusedTextColor = InkPrimary,
+                    cursorColor = InkPrimary
                 )
             )
             Spacer(Modifier.height(16.dp))
@@ -501,13 +508,16 @@ private fun AmountDialog(
                 value = amountInput,
                 onValueChange = { amountInput = formatAmountInput(it) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Сумма, ₽") },
+                label = { Text("Сумма, ${CurrencyConfig.symbol}") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = ScreenBg
+                    unfocusedBorderColor = ScreenBg,
+                    focusedTextColor = InkPrimary,
+                    unfocusedTextColor = InkPrimary,
+                    cursorColor = InkPrimary
                 )
             )
             if (!isDeposit && amount != null && amount > jar.savedAmount) {

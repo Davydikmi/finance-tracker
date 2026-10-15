@@ -2,26 +2,52 @@ package com.example.finance_tracker.data.repository
 
 import com.example.finance_tracker.data.local.dao.BudgetDao
 import com.example.finance_tracker.data.local.dao.CategoryLimitDao
+import com.example.finance_tracker.data.local.dao.TransactionDao
 import com.example.finance_tracker.data.local.entity.BudgetEntity
 import com.example.finance_tracker.data.local.entity.CategoryLimitEntity
 import com.example.finance_tracker.data.mapper.toDomain
 import com.example.finance_tracker.data.mapper.toEntity
 import com.example.finance_tracker.domain.model.Budget
 import com.example.finance_tracker.domain.model.CategoryLimit
+import com.example.finance_tracker.domain.model.TransactionType
 import com.example.finance_tracker.domain.repository.BudgetRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class BudgetRepositoryImpl @Inject constructor(
     private val budgetDao: BudgetDao,
-    private val categoryLimitDao: CategoryLimitDao
+    private val categoryLimitDao: CategoryLimitDao,
+    private val transactionDao: TransactionDao
 ) : BudgetRepository {
 
     override fun observeMonthlyBudget(monthYear: String): Flow<Budget?> =
         budgetDao.observeByMonth(monthYear).map { it?.toDomain() }
+
+    override fun getDailySpendingLimit(): Flow<Double?> {
+        val month = YearMonth.now()
+        val zone = ZoneId.systemDefault()
+        val start = month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val end = month.atEndOfMonth().plusDays(1).atStartOfDay(zone)
+            .toInstant().toEpochMilli() - 1
+        return combine(
+            budgetDao.observeByMonth(month.toString()),
+            transactionDao.getByDateRange(start, end)
+        ) { budget, transactions ->
+            val limit = budget?.takeIf { it.totalLimit > 0.0 } ?: return@combine null
+            val spent = transactions
+                .filter { it.type == TransactionType.EXPENSE }
+                .sumOf { it.amount }
+            val daysLeft = month.lengthOfMonth() - LocalDate.now().dayOfMonth + 1
+            ((limit.totalLimit - spent) / daysLeft).coerceAtLeast(0.0)
+        }
+    }
 
     override suspend fun setMonthlyBudget(monthYear: String, totalLimit: Double) {
         require(totalLimit > 0) { "Лимит бюджета должен быть положительным, получено: $totalLimit" }

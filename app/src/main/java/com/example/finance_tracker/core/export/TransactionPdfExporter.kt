@@ -72,7 +72,8 @@ class TransactionPdfExporter @Inject constructor(
             y = MARGIN
         }
 
-        // Шапка отчёта (только первая страница)
+        // Шапка отчёта (только первая страница). Суммы в отчёте — в валюте
+        // приложения (конвертация из BYN по курсу НБ РБ).
         canvas.drawText("Финансовый трекер — отчёт за $title", MARGIN, y, titlePaint)
         y += 26f
         val expenses = transactions
@@ -155,8 +156,9 @@ class TransactionPdfExporter @Inject constructor(
         return "$result…"
     }
 
+    /** Хранимая сумма (BYN) → форматированная сумма в валюте приложения. */
     private fun money(amount: Double): String =
-        moneyFormat.format(amount)
+        moneyFormat.format(amount / CurrencyConfig.ratePerUnit)
 
     private companion object {
         const val PAGE_WIDTH = 595f

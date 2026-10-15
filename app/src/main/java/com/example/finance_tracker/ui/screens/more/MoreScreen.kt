@@ -22,16 +22,21 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.finance_tracker.core.CurrencyConfig
 import com.example.finance_tracker.domain.model.AppSettings
+import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.theme.CardBg
 import com.example.finance_tracker.ui.theme.CardSolid
 import com.example.finance_tracker.ui.theme.DividerColor
@@ -62,6 +68,8 @@ import com.example.finance_tracker.ui.theme.InkSecondary
 import com.example.finance_tracker.ui.theme.ScreenBg
 import kotlinx.coroutines.launch
 import java.io.File
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 
 /**
  * «Ещё»: категории, экспорт PDF, тема, валюта и язык приложения.
@@ -72,12 +80,14 @@ fun MoreScreen(
     viewModel: MoreViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val monthBudget by viewModel.monthBudget.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var isExporting by remember { mutableStateOf(false) }
     var showCurrencyDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showBudgetDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -113,6 +123,15 @@ fun MoreScreen(
                     title = "Категории",
                     subtitle = "Расходы и доходы, создание и редактирование",
                     onClick = onOpenCategories
+                )
+                HorizontalDivider(color = DividerColor)
+                MenuRow(
+                    icon = Icons.Outlined.Savings,
+                    title = "Бюджет месяца",
+                    subtitle = monthBudget?.let {
+                        "Задан: ${Formatters.money(it.totalLimit)}"
+                    } ?: "Не задан — установите лимит трат",
+                    onClick = { showBudgetDialog = true }
                 )
             }
 
@@ -178,6 +197,45 @@ fun MoreScreen(
                     },
                     onClick = { showLanguageDialog = true }
                 )
+                HorizontalDivider(color = DividerColor)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Уведомления",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = InkPrimary
+                        )
+                        Text(
+                            text = "Предупреждения при 80% и 100% бюджета",
+                            fontSize = 12.sp,
+                            color = InkSecondary
+                        )
+                    }
+                    Switch(
+                        checked = settings?.notificationsEnabled ?: true,
+                        onCheckedChange = viewModel::setNotificationsEnabled,
+                        colors = SwitchDefaults.colors(checkedTrackColor = InkPrimary)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            SettingsCard(title = "О приложении") {
+                Text(
+                    text = "Финансовый трекер — локальный учёт доходов и расходов " +
+                        "с копилками, бюджетами и курсами валют НБ РБ. " +
+                        "Все данные хранятся только на вашем устройстве.",
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = InkSecondary,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
 
             Spacer(Modifier.height(24.dp))
@@ -189,6 +247,17 @@ fun MoreScreen(
             )
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showBudgetDialog) {
+        BudgetDialog(
+            currentAmount = monthBudget?.totalLimit,
+            onDismiss = { showBudgetDialog = false },
+            onSave = { input ->
+                viewModel.setMonthBudget(input)
+                showBudgetDialog = false
+            }
+        )
     }
 
     if (showCurrencyDialog) {
@@ -338,6 +407,67 @@ private fun SelectionDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(text = "Отмена") }
+        }
+    )
+}
+
+@Composable
+private fun BudgetDialog(
+    currentAmount: Double?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var input by remember {
+        mutableStateOf(
+            currentAmount?.let {
+                DecimalFormat("#,##0.##", DecimalFormatSymbols(java.util.Locale("ru"))).format(it)
+            }.orEmpty()
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardSolid,
+        title = {
+            Text(
+                text = "Бюджет на ${Formatters.currentMonthTitle()}",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = InkPrimary
+            )
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(12) },
+                    singleLine = true,
+                    label = { Text("Лимит трат, ${CurrencyConfig.symbol}") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = InkPrimary,
+                        unfocusedTextColor = InkPrimary,
+                        cursorColor = InkPrimary,
+                        focusedBorderColor = InkPrimary,
+                        unfocusedBorderColor = CardSolid
+                    )
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "При 80% и 100% придёт уведомление",
+                    fontSize = 12.sp,
+                    color = InkSecondary
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(input) }) {
+                Text(text = "Сохранить", color = InkPrimary, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = "Отмена", color = InkSecondary) }
         }
     )
 }

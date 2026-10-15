@@ -1,5 +1,6 @@
 package com.example.finance_tracker.data.repository
 
+import com.example.finance_tracker.core.BudgetAlertChecker
 import com.example.finance_tracker.data.local.dao.TransactionDao
 import com.example.finance_tracker.data.mapper.toDomain
 import com.example.finance_tracker.data.mapper.toEntity
@@ -14,7 +15,8 @@ import javax.inject.Singleton
 
 @Singleton
 class TransactionRepositoryImpl @Inject constructor(
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val budgetAlertChecker: BudgetAlertChecker
 ) : TransactionRepository {
 
     override fun getAllTransactionsWithDetails(): Flow<List<TransactionDetail>> =
@@ -26,8 +28,12 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTransactionById(id: Long): Transaction? =
         transactionDao.getById(id)?.toDomain()
 
-    override suspend fun addTransaction(transaction: Transaction): Long =
-        transactionDao.insert(transaction.toEntity())
+    override suspend fun addTransaction(transaction: Transaction): Long {
+        val id = transactionDao.insert(transaction.toEntity())
+        // Порог 80/100% бюджета проверяем сразу после расхода/дохода.
+        budgetAlertChecker.checkAndNotify()
+        return id
+    }
 
     override suspend fun updateTransaction(transaction: Transaction) =
         transactionDao.update(transaction.toEntity())

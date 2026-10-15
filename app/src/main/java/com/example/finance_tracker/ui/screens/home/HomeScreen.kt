@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.finance_tracker.domain.model.CurrencyRate
 import com.example.finance_tracker.domain.model.SavingsJar
 import com.example.finance_tracker.ui.components.Formatters
 import com.example.finance_tracker.ui.components.TransactionListItem
@@ -52,19 +53,28 @@ import com.example.finance_tracker.ui.theme.ExpenseRed
 import com.example.finance_tracker.ui.theme.IncomeGreen
 import com.example.finance_tracker.ui.theme.InkPrimary
 import com.example.finance_tracker.ui.theme.InkSecondary
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Главный экран: баланс месяца, карточки «можно тратить в день» и бюджета,
  * копилки, последние операции. Данные — из [HomeViewModel].
  */
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onOpenConverter: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeContent(state)
+    HomeContent(state, onOpenConverter)
 }
 
 @Composable
-private fun HomeContent(state: HomeUiState) {
+private fun HomeContent(state: HomeUiState, onOpenConverter: () -> Unit) {
     if (state.isLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -108,6 +118,15 @@ private fun HomeContent(state: HomeUiState) {
         ) {
             AllowanceCard(state.dailyAllowance, Modifier.weight(1f).fillMaxHeight())
             BudgetCard(state.budgetPercentLeft, Modifier.weight(1f).fillMaxHeight())
+        }
+
+        if (state.rates.isNotEmpty()) {
+            Spacer(Modifier.height(18.dp))
+            RatesRow(
+                rates = state.rates,
+                ratesUpdatedAt = state.ratesUpdatedAt,
+                onClick = onOpenConverter
+            )
         }
 
         Spacer(Modifier.height(26.dp))
@@ -227,13 +246,89 @@ private fun BudgetCard(percentLeft: Int?, modifier: Modifier = Modifier) {
             Text(text = "Бюджет", fontSize = 11.sp, color = InkSecondary)
             Spacer(Modifier.height(4.dp))
             Text(
-                text = percentLeft?.let { "$it% осталось" } ?: "не задан",
+                text = if (percentLeft != null) "$percentLeft% осталось" else "не задан",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = InkPrimary
             )
-            Spacer(Modifier.height(2.dp))
-            Text(text = "на текущий месяц", fontSize = 11.sp, color = InkSecondary)
+            percentLeft?.let { left ->
+                val usage = (100 - left).coerceIn(0, 100)
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { usage / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = budgetUsageColor(usage),
+                    trackColor = CardSolid
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "израсходовано $usage%",
+                    fontSize = 10.sp,
+                    color = InkSecondary
+                )
+            }
+        }
+    }
+}
+
+/** Зелёный — израсходовано меньше половины, жёлтый — до 80%, красный — больше. */
+private fun budgetUsageColor(usagePercent: Int): Color = when {
+    usagePercent > 80 -> ExpenseRed
+    usagePercent >= 50 -> Color(0xFFF5A623)
+    else -> IncomeGreen
+}
+
+/** Карточки курсов НБ РБ: USD / EUR / RUB к BYN; тап — конвертер. */
+@Composable
+private fun RatesRow(
+    rates: List<CurrencyRate>,
+    ratesUpdatedAt: Long?,
+    onClick: () -> Unit
+) {
+    Column {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            rates.forEach { rate ->
+                Surface(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = CardBg
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = rate.code,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = InkSecondary
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = DecimalFormat("#,##0.00", DecimalFormatSymbols(Locale("ru")))
+                                .format(rate.ratePerUnit),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = InkPrimary
+                        )
+                    }
+                }
+            }
+        }
+        ratesUpdatedAt?.let { updatedAt ->
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Курс НБ РБ на " + Instant.ofEpochMilli(updatedAt)
+                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                    .format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) +
+                    " · нажмите для конвертера",
+                fontSize = 11.sp,
+                color = InkSecondary
+            )
         }
     }
 }

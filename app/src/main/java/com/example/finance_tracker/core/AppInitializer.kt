@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import com.example.finance_tracker.domain.repository.CategoryRepository
+import com.example.finance_tracker.domain.repository.ExchangeRateRepository
 import com.example.finance_tracker.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,14 +17,16 @@ import javax.inject.Singleton
 /**
  * Первичная инициализация приложения:
  * 1) заполняет БД категориями по умолчанию, если она пуста;
- * 2) применяет настройки на уровне приложения: символ базовой валюты
- *    (см. [CurrencyConfig]) и язык интерфейса (per-app locale).
+ * 2) применяет настройки: символ валюты + курс конвертации
+ *    (см. [CurrencyConfig]) и язык интерфейса (per-app locale);
+ * 3) периодически обновляет курсы НБ РБ в фоне.
  * Вызывается из FinanceTrackerApp.onCreate().
  */
 @Singleton
 class AppInitializer @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val exchangeRateRepository: ExchangeRateRepository
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -39,7 +42,7 @@ class AppInitializer @Inject constructor(
         scope.launch {
             try {
                 settingsRepository.observeSettings().collect { settings ->
-                    CurrencyConfig.symbol = CurrencyConfig.symbolFor(settings.baseCurrency)
+                    applyCurrency(settings.baseCurrency)
                     // AppCompatDelegate требует главный поток.
                     withContext(Dispatchers.Main) {
                         applyLanguage(settings.language)
@@ -48,6 +51,38 @@ class AppInitializer @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Не удалось применить настройки", e)
             }
+        }
+        refreshRatesPeriodically()
+    }
+
+    /**
+     * Обновляет курсы при каждом старте (курсы НБ РБ меняются раз в день)
+     * и затем раз в 6 часов, пока приложение живо. Офлайн — работаем
+     * на закэшированных курсах.
+     */
+    private fun refreshRatesPeriodically() {
+        scope.launch {
+            while (true) {
+                val refreshed = try {
+                    exchangeRateRepository.refreshRates()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Курсы не обновлены", e)
+                    false
+                }
+                if (refreshed) {
+                    Log.d(TAG, "Курсы НБ РБ обновлены")
+                    // Перез применяем текущую валюту: курс мог измениться.
+                    applyCurrency(settingsRepository.currentBaseCurrency())
+                }
+                kotlinx.coroutines.delay(RATES_REFRESH_INTERVAL_MS)
+            }
+        }
+    }
+
+    private suspend fun applyCurrency(currencyCode: String) {
+        CurrencyConfig.symbol = CurrencyConfig.symbolFor(currencyCode)
+        exchangeRateRepository.getRatePerUnit(currencyCode)?.let { rate ->
+            CurrencyConfig.ratePerUnit = rate
         }
     }
 
@@ -66,5 +101,6 @@ class AppInitializer @Inject constructor(
 
     companion object {
         private const val TAG = "AppInitializer"
+        private const val RATES_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000L
     }
 }

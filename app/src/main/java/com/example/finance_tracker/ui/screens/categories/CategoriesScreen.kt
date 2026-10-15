@@ -362,7 +362,10 @@ private fun CategoryEditorDialog(
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InkPrimary,
-                    unfocusedBorderColor = ScreenBg
+                    unfocusedBorderColor = ScreenBg,
+                    focusedTextColor = InkPrimary,
+                    unfocusedTextColor = InkPrimary,
+                    cursorColor = InkPrimary
                 )
             )
             Spacer(Modifier.height(16.dp))

@@ -8,7 +8,8 @@ package com.example.finance_tracker.domain.model
 data class AppSettings(
     val themeMode: String = THEME_SYSTEM,
     val baseCurrency: String = DEFAULT_CURRENCY,
-    val language: String = LANG_RU
+    val language: String = LANG_RU,
+    val notificationsEnabled: Boolean = true
 ) {
     companion object {
         const val THEME_LIGHT = "light"

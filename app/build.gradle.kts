@@ -99,6 +99,11 @@ dependencies {
     // Утилиты
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
+    // ML Kit: распознавание текста чеков (локально, офлайн).
+    // Латинская модель: суммы/даты (цифры) распознаёт; кириллица не поддерживается ML Kit v2.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
     // Тесты
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

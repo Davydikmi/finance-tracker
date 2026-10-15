@@ -2,16 +2,19 @@ package com.example.finance_tracker.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.finance_tracker.domain.model.CurrencyRate
 import com.example.finance_tracker.domain.model.SavingsJar
 import com.example.finance_tracker.domain.model.TransactionDetail
 import com.example.finance_tracker.domain.model.TransactionType
 import com.example.finance_tracker.domain.repository.BudgetRepository
+import com.example.finance_tracker.domain.repository.ExchangeRateRepository
 import com.example.finance_tracker.domain.repository.SavingsJarRepository
 import com.example.finance_tracker.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.YearMonth
@@ -25,6 +28,8 @@ data class HomeUiState(
     val budgetPercentLeft: Int? = null,
     val jars: List<SavingsJar> = emptyList(),
     val recentTransactions: List<TransactionDetail> = emptyList(),
+    val rates: List<CurrencyRate> = emptyList(),
+    val ratesUpdatedAt: Long? = null,
     val isLoading: Boolean = true
 )
 
@@ -32,7 +37,8 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     savingsJarRepository: SavingsJarRepository,
-    budgetRepository: BudgetRepository
+    budgetRepository: BudgetRepository,
+    exchangeRateRepository: ExchangeRateRepository
 ) : ViewModel() {
 
     private val today: LocalDate = LocalDate.now()
@@ -46,8 +52,10 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         transactionRepository.getAllTransactionsWithDetails(),
         savingsJarRepository.getActiveJars(),
-        budgetRepository.observeMonthlyBudget(month.toString())
-    ) { transactions, jars, budget ->
+        budgetRepository.observeMonthlyBudget(month.toString()),
+        exchangeRateRepository.observeRates(RATE_CARD_CODES),
+        flow { emit(exchangeRateRepository.getLastUpdateTime()) }
+    ) { transactions, jars, budget, rates, ratesUpdatedAt ->
         val balance = transactions.sumOf {
             if (it.type == TransactionType.INCOME) it.amount else -it.amount
         }
@@ -70,6 +78,8 @@ class HomeViewModel @Inject constructor(
             },
             jars = jars,
             recentTransactions = transactions.take(RECENT_TRANSACTIONS_COUNT),
+            rates = rates,
+            ratesUpdatedAt = ratesUpdatedAt,
             isLoading = false
         )
     }.stateIn(
@@ -80,5 +90,6 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val RECENT_TRANSACTIONS_COUNT = 5
+        val RATE_CARD_CODES = listOf("USD", "EUR", "RUB")
     }
 }

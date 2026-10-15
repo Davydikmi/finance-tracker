@@ -54,10 +54,14 @@ import java.time.YearMonth
 
 /**
  * История операций: переключение месяцев, поиск, фильтр по типу,
- * группировка по дням с итогом расходов за день.
+ * группировка по дням с итогом расходов за день. Тап по записи —
+ * редактирование ([onTransactionClick] с id).
  */
 @Composable
-fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
+fun HistoryScreen(
+    onTransactionClick: (Long) -> Unit = {},
+    viewModel: HistoryViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
@@ -118,6 +122,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 
             else -> TransactionList(
                 days = state.days,
+                onTransactionClick = onTransactionClick,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -270,7 +275,11 @@ private fun FilterChip(label: String, isActive: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TransactionList(days: List<DayTransactions>, modifier: Modifier = Modifier) {
+private fun TransactionList(
+    days: List<DayTransactions>,
+    onTransactionClick: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -286,7 +295,10 @@ private fun TransactionList(days: List<DayTransactions>, modifier: Modifier = Mo
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
                         day.transactions.forEachIndexed { index, transaction ->
-                            TransactionListItem(transaction = transaction)
+                            TransactionListItem(
+                                transaction = transaction,
+                                onClick = { onTransactionClick(transaction.id) }
+                            )
                             if (index < day.transactions.lastIndex) {
                                 HorizontalDivider(color = DividerColor)
                             }

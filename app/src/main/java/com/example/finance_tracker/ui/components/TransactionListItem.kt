@@ -1,5 +1,6 @@
 package com.example.finance_tracker.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,16 +26,19 @@ import com.example.finance_tracker.ui.theme.InkSecondary
 /**
  * Строка транзакции: точка категории, заголовок с подстрокой
  * «дата, время · категория» и сумма (красная расход / зелёная доход).
- * Используется на главной и в истории.
+ * Используется на главной и в истории; [onClick] открывает редактирование.
  */
 @Composable
 fun TransactionListItem(
     transaction: TransactionDetail,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
+    val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(clickableModifier)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

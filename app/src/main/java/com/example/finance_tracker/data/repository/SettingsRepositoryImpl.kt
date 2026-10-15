@@ -17,6 +17,9 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun observeSettings(): Flow<AppSettings> =
         settingsDao.getSettings().map { it.toAppSettings() }
 
+    override suspend fun currentBaseCurrency(): String =
+        settingsDao.getSettingsOnce()?.baseCurrency ?: AppSettings.DEFAULT_CURRENCY
+
     override suspend fun setThemeMode(mode: String) = update { it.copy(themeMode = mode) }
 
     override suspend fun setBaseCurrency(currencyCode: String) =
@@ -24,6 +27,9 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setLanguage(languageCode: String) =
         update { it.copy(language = languageCode) }
+
+    override suspend fun setNotificationsEnabled(enabled: Boolean) =
+        update { it.copy(notificationsEnabled = enabled) }
 
     /** Строка настроек ровно одна — читаем, преобразуем, перезаписываем. */
     private suspend fun update(transform: (SettingsEntity) -> SettingsEntity) {
@@ -34,6 +40,7 @@ class SettingsRepositoryImpl @Inject constructor(
     private fun SettingsEntity.toAppSettings() = AppSettings(
         themeMode = themeMode,
         baseCurrency = baseCurrency,
-        language = language
+        language = language,
+        notificationsEnabled = notificationsEnabled
     )
 }

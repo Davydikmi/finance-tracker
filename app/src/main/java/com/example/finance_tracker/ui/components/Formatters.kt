@@ -33,14 +33,17 @@ object Formatters {
     private val monthFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru"))
     private val compactFormat = DecimalFormat("0.#").apply { decimalFormatSymbols = symbols }
 
+    /** Суммы хранятся в BYN; для показа конвертируем в валюту настроек. */
+    private fun converted(amount: Double): Double = amount / CurrencyConfig.ratePerUnit
+
     fun money(amount: Double): String =
-        moneyFormat.format(amount) + " " + CurrencyConfig.symbol
+        moneyFormat.format(converted(amount)) + " " + CurrencyConfig.symbol
 
     fun expense(amount: Double): String =
-        "−" + moneyFormat.format(amount) + " " + CurrencyConfig.symbol
+        "−" + moneyFormat.format(converted(amount)) + " " + CurrencyConfig.symbol
 
     fun income(amount: Double): String =
-        "+" + moneyFormat.format(amount) + " " + CurrencyConfig.symbol
+        "+" + moneyFormat.format(converted(amount)) + " " + CurrencyConfig.symbol
 
     fun currentMonthTitle(): String = monthTitle(YearMonth.now())
 
@@ -58,13 +61,16 @@ object Formatters {
     fun monthShort(month: YearMonth): String =
         month.format(monthShortFormatter).replaceFirstChar { it.lowercase() }
 
-    /** Компактные деньги для графики: "42,3 т₽", "1,2 млн ₽". */
-    fun compactMoney(amount: Double): String = when {
-        amount >= 1_000_000 ->
-            "${compactFormat.format(amount / 1_000_000)} млн ${CurrencyConfig.symbol}"
-        amount >= 1_000 ->
-            "${compactFormat.format(amount / 1_000)} т${CurrencyConfig.symbol}"
-        else -> money(amount)
+    /** Компактные деньги для графики: "42,3 тBr", "1,2 млн Br". */
+    fun compactMoney(amount: Double): String {
+        val display = converted(amount)
+        return when {
+            display >= 1_000_000 ->
+                "${compactFormat.format(display / 1_000_000)} млн ${CurrencyConfig.symbol}"
+            display >= 1_000 ->
+                "${compactFormat.format(display / 1_000)} т${CurrencyConfig.symbol}"
+            else -> money(amount)
+        }
     }
 
     fun time(millis: Long): String =
