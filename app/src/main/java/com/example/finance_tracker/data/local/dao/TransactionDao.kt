@@ -82,9 +82,10 @@ interface TransactionDao {
     fun getLast5(): Flow<List<TransactionEntity>>
 
     /**
-     * Расходы периода, сгруппированные по категориям, по убыванию суммы.
-     * Категории с id = 0 ("без категории") дают categoryName = null.
-     * Room маппит колонки запроса в доменную модель CategoryExpense по именам.
+     * Операции периода заданного типа, сгруппированные по категориям,
+     * по убыванию суммы. Категории с id = 0 ("без категории") дают
+     * categoryName = null. Room маппит колонки запроса в доменную модель
+     * CategoryExpense по именам.
      */
     @Query(
         """
@@ -94,10 +95,14 @@ interface TransactionDao {
                SUM(t.amount) AS amount
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.categoryId
-        WHERE t.type = 'EXPENSE' AND t.date BETWEEN :start AND :end
+        WHERE t.type = :type AND t.date BETWEEN :start AND :end
         GROUP BY t.categoryId
         ORDER BY amount DESC
         """
     )
-    fun observeExpensesByCategory(start: Long, end: Long): Flow<List<CategoryExpense>>
+    fun observeByCategory(
+        type: TransactionType,
+        start: Long,
+        end: Long
+    ): Flow<List<CategoryExpense>>
 }

@@ -7,6 +7,7 @@ import com.example.finance_tracker.data.mapper.toEntity
 import com.example.finance_tracker.domain.model.CategoryExpense
 import com.example.finance_tracker.domain.model.Transaction
 import com.example.finance_tracker.domain.model.TransactionDetail
+import com.example.finance_tracker.domain.model.TransactionType
 import com.example.finance_tracker.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -47,6 +48,10 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTotalIncome(start: Long, end: Long): Double? =
         transactionDao.getTotalIncome(start, end)
 
-    override fun observeExpensesByCategory(start: Long, end: Long): Flow<List<CategoryExpense>> =
-        transactionDao.observeExpensesByCategory(start, end)
+    override fun observeByCategory(
+        type: TransactionType,
+        start: Long,
+        end: Long
+    ): Flow<List<CategoryExpense>> =
+        transactionDao.observeByCategory(type, start, end)
 }

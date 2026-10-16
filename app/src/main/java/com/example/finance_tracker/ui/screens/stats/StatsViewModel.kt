@@ -3,6 +3,7 @@ package com.example.finance_tracker.ui.screens.stats
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finance_tracker.domain.model.CategoryExpense
+import com.example.finance_tracker.domain.model.TransactionDetail
 import com.example.finance_tracker.domain.model.TransactionType
 import com.example.finance_tracker.domain.repository.TransactionRepository
 import com.example.finance_tracker.ui.components.Formatters
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -29,7 +31,12 @@ enum class StatsPeriod(val label: String) {
     YEAR("Год")
 }
 
-/** Доля категории в расходах периода — элемент пончика и топа. */
+enum class StatsSeries(val label: String) {
+    EXPENSES("Расходы"),
+    INCOMES("Доходы")
+}
+
+/** Доля категории в операциях периода — элемент пончика и топа. */
 data class CategoryShare(
     val name: String,
     val color: Long?,
@@ -37,7 +44,7 @@ data class CategoryShare(
     val percent: Int
 )
 
-/** Точка графика «по дням»: подпись и сумма расходов за день/месяц. */
+/** Точка графика «по дням»: подпись и сумма за день/месяц. */
 data class DayPoint(
     val label: String,
     val value: Double,
@@ -48,10 +55,13 @@ data class DayPoint(
 data class StatsUiState(
     val period: StatsPeriod = StatsPeriod.MONTH,
     val totalExpenses: Double = 0.0,
-    /** Изменение к предыдущему периоду в процентах; null — сравнивать не с чем. */
+    val totalIncome: Double = 0.0,
+    /** Изменение расходов к предыдущему периоду в %; null — сравнивать не с чем. */
     val changePercent: Int? = null,
-    val categories: List<CategoryShare> = emptyList(),
-    val dailyPoints: List<DayPoint> = emptyList(),
+    val expenseCategories: List<CategoryShare> = emptyList(),
+    val incomeCategories: List<CategoryShare> = emptyList(),
+    val dailyExpensePoints: List<DayPoint> = emptyList(),
+    val dailyIncomePoints: List<DayPoint> = emptyList(),
     val isLoading: Boolean = true
 )
 
@@ -78,10 +88,11 @@ class StatsViewModel @Inject constructor(
 
         combine(
             transactionRepository.getTransactionsByDateRange(current.startMillis, current.endMillis),
-            transactionRepository.observeExpensesByCategory(current.startMillis, current.endMillis),
+            transactionRepository.observeByCategory(TransactionType.EXPENSE, current.startMillis, current.endMillis),
+            transactionRepository.observeByCategory(TransactionType.INCOME, current.startMillis, current.endMillis),
             flow { emit(transactionRepository.getTotalExpenses(previous.startMillis, previous.endMillis)) }
-        ) { transactions, categoryExpenses, prevTotal ->
-            buildState(selected, current, transactions, categoryExpenses, prevTotal)
+        ) { transactions, expenseByCategory, incomeByCategory, prevExpenseTotal ->
+            buildState(selected, current, transactions, expenseByCategory, incomeByCategory, prevExpenseTotal)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -96,68 +107,81 @@ class StatsViewModel @Inject constructor(
     private fun buildState(
         selected: StatsPeriod,
         range: PeriodRange,
-        transactions: List<com.example.finance_tracker.domain.model.TransactionDetail>,
-        categoryExpenses: List<CategoryExpense>,
-        prevTotal: Double?
+        transactions: List<TransactionDetail>,
+        expenseByCategory: List<CategoryExpense>,
+        incomeByCategory: List<CategoryExpense>,
+        prevExpenseTotal: Double?
     ): StatsUiState {
-        val expenses = transactions.filter { it.type == TransactionType.EXPENSE }
-        val total = expenses.sumOf { it.amount }
         val zone = ZoneId.systemDefault()
+        val expenses = transactions.filter { it.type == TransactionType.EXPENSE }
+        val incomes = transactions.filter { it.type == TransactionType.INCOME }
+        val totalExpenses = expenses.sumOf { it.amount }
+        val totalIncome = incomes.sumOf { it.amount }
 
-        // Расходы по календарным дням/месяцам периода
-        val byDay = expenses.groupBy {
-            java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate()
+        val expensesByDay = expenses.groupBy {
+            Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate()
         }.mapValues { (_, list) -> list.sumOf { it.amount } }
-
-        val dailyPoints = when (selected) {
-            StatsPeriod.WEEK -> (0..6).map { offset ->
-                val day = range.start.plusDays(offset.toLong())
-                DayPoint(Formatters.weekdayShort(day), byDay[day] ?: 0.0)
-            }
-
-            StatsPeriod.MONTH -> (1..range.start.lengthOfMonth()).map { dayOfMonth ->
-                val day = range.start.withDayOfMonth(dayOfMonth)
-                DayPoint(
-                    label = dayOfMonth.toString(),
-                    value = byDay[day] ?: 0.0,
-                    showLabel = dayOfMonth == 1 ||
-                        dayOfMonth % 5 == 0 ||
-                        dayOfMonth == range.start.lengthOfMonth()
-                )
-            }
-
-            StatsPeriod.YEAR -> (0..11).map { offset ->
-                val month = YearMonth.from(range.start).plusMonths(offset.toLong())
-                val monthTotal = byDay.entries
-                    .filter { YearMonth.from(it.key) == month }
-                    .sumOf { it.value }
-                DayPoint(Formatters.monthShort(month), monthTotal)
-            }
-        }
-
-        val categories = categoryExpenses
-            .filter { it.amount > 0.0 }
-            .map { expense ->
-                CategoryShare(
-                    name = expense.categoryName ?: "Без категории",
-                    color = expense.categoryColor,
-                    amount = expense.amount,
-                    percent = if (total > 0.0) (expense.amount / total * 100).roundToInt() else 0
-                )
-            }
-
-        val change = prevTotal
-            ?.takeIf { it > 0.0 && total > 0.0 }
-            ?.let { ((total - it) / it * 100).roundToInt() }
+        val incomesByDay = incomes.groupBy {
+            Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate()
+        }.mapValues { (_, list) -> list.sumOf { it.amount } }
 
         return StatsUiState(
             period = selected,
-            totalExpenses = total,
-            changePercent = change,
-            categories = categories,
-            dailyPoints = dailyPoints,
+            totalExpenses = totalExpenses,
+            totalIncome = totalIncome,
+            changePercent = prevExpenseTotal
+                ?.takeIf { it > 0.0 && totalExpenses > 0.0 }
+                ?.let { ((totalExpenses - it) / it * 100).roundToInt() },
+            expenseCategories = buildShares(expenseByCategory, totalExpenses),
+            incomeCategories = buildShares(incomeByCategory, totalIncome),
+            dailyExpensePoints = buildDailyPoints(selected, range, expensesByDay),
+            dailyIncomePoints = buildDailyPoints(selected, range, incomesByDay),
             isLoading = false
         )
+    }
+
+    private fun buildShares(
+        byCategory: List<CategoryExpense>,
+        total: Double
+    ): List<CategoryShare> = byCategory
+        .filter { it.amount > 0.0 }
+        .map { expense ->
+            CategoryShare(
+                name = expense.categoryName ?: "Без категории",
+                color = expense.categoryColor,
+                amount = expense.amount,
+                percent = if (total > 0.0) (expense.amount / total * 100).roundToInt() else 0
+            )
+        }
+
+    private fun buildDailyPoints(
+        selected: StatsPeriod,
+        range: PeriodRange,
+        byDay: Map<LocalDate, Double>
+    ): List<DayPoint> = when (selected) {
+        StatsPeriod.WEEK -> (0..6).map { offset ->
+            val day = range.start.plusDays(offset.toLong())
+            DayPoint(Formatters.weekdayShort(day), byDay[day] ?: 0.0)
+        }
+
+        StatsPeriod.MONTH -> (1..range.start.lengthOfMonth()).map { dayOfMonth ->
+            val day = range.start.withDayOfMonth(dayOfMonth)
+            DayPoint(
+                label = dayOfMonth.toString(),
+                value = byDay[day] ?: 0.0,
+                showLabel = dayOfMonth == 1 ||
+                    dayOfMonth % 5 == 0 ||
+                    dayOfMonth == range.start.lengthOfMonth()
+            )
+        }
+
+        StatsPeriod.YEAR -> (0..11).map { offset ->
+            val month = YearMonth.from(range.start).plusMonths(offset.toLong())
+            val monthTotal = byDay.entries
+                .filter { YearMonth.from(it.key) == month }
+                .sumOf { it.value }
+            DayPoint(Formatters.monthShort(month), monthTotal)
+        }
     }
 
     private fun StatsPeriod.currentRange(today: LocalDate): PeriodRange = when (this) {

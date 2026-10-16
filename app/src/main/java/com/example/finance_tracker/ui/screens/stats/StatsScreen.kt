@@ -22,6 +22,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,7 +92,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                 }
             }
 
-            state.totalExpenses <= 0.0 -> EmptyState(modifier = Modifier.weight(1f))
+            state.totalExpenses <= 0.0 && state.totalIncome <= 0.0 -> EmptyState(modifier = Modifier.weight(1f))
 
             else -> Column(
                 modifier = Modifier
@@ -100,10 +103,18 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                 TotalCard(state)
 
                 Spacer(Modifier.height(12.dp))
-                DonutCard(state.categories, state.totalExpenses)
+                DonutCard(
+                    expenseCategories = state.expenseCategories,
+                    totalExpenses = state.totalExpenses,
+                    incomeCategories = state.incomeCategories,
+                    totalIncome = state.totalIncome
+                )
 
                 Spacer(Modifier.height(12.dp))
-                DailyChartCard(state.dailyPoints)
+                DailyChartCard(
+                    expensePoints = state.dailyExpensePoints,
+                    incomePoints = state.dailyIncomePoints
+                )
 
                 Spacer(Modifier.height(20.dp))
                 Text(
@@ -113,7 +124,10 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                     color = InkPrimary
                 )
                 Spacer(Modifier.height(10.dp))
-                TopCategories(state.categories)
+                TopCategories(
+                    expenseCategories = state.expenseCategories,
+                    incomeCategories = state.incomeCategories
+                )
 
                 Spacer(Modifier.height(20.dp))
             }
@@ -160,10 +174,10 @@ private fun TotalCard(state: StatsUiState) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Расходы: ${Formatters.money(state.totalExpenses)}",
+                    text = "Расходы: ${Formatters.expense(state.totalExpenses)}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = InkPrimary
+                    color = ExpenseRed
                 )
                 Spacer(Modifier.width(8.dp))
                 state.changePercent?.let { change ->
@@ -177,6 +191,19 @@ private fun TotalCard(state: StatsUiState) {
                     )
                 }
             }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Доходы: ${Formatters.income(state.totalIncome)}",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = IncomeGreen
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Баланс периода: ${Formatters.money(state.totalIncome - state.totalExpenses)}",
+                fontSize = 12.sp,
+                color = InkSecondary
+            )
         }
     }
 }
@@ -187,8 +214,40 @@ private fun StatsPeriod.previousWord(): String = when (this) {
     StatsPeriod.YEAR -> "году"
 }
 
+/** Переключатель Расходы/Доходы в карточках статистики. */
 @Composable
-private fun DonutCard(categories: List<CategoryShare>, total: Double) {
+private fun SeriesToggle(selected: StatsSeries, onSelect: (StatsSeries) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        StatsSeries.entries.forEach { series ->
+            val active = series == selected
+            Surface(
+                onClick = { onSelect(series) },
+                shape = RoundedCornerShape(12.dp),
+                color = if (active) InkPrimary else CardSolid
+            ) {
+                Text(
+                    text = series.label,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (active) OnAccent else InkSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DonutCard(
+    expenseCategories: List<CategoryShare>,
+    totalExpenses: Double,
+    incomeCategories: List<CategoryShare>,
+    totalIncome: Double
+) {
+    var series by rememberSaveable { mutableStateOf(StatsSeries.EXPENSES) }
+    val categories = if (series == StatsSeries.EXPENSES) expenseCategories else incomeCategories
+    val total = if (series == StatsSeries.EXPENSES) totalExpenses else totalIncome
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -198,48 +257,60 @@ private fun DonutCard(categories: List<CategoryShare>, total: Double) {
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                DonutChart(
-                    categories = categories,
-                    total = total,
-                    modifier = Modifier.size(190.dp)
-                )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = Formatters.compactMoney(total),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = InkPrimary
-                    )
-                    Text(text = "за период", fontSize = 11.sp, color = InkSecondary)
-                }
-            }
+            SeriesToggle(selected = series, onSelect = { series = it })
+            Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(14.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                categories.forEach { share ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier
-                                .size(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(share.color?.let { Color(it) } ?: InkSecondary)
-                        )
-                        Spacer(Modifier.width(8.dp))
+            if (total <= 0.0) {
+                Text(
+                    text = if (series == StatsSeries.EXPENSES) "Расходов за период нет" else "Доходов за период нет",
+                    fontSize = 13.sp,
+                    color = InkSecondary,
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    DonutChart(
+                        categories = categories,
+                        total = total,
+                        modifier = Modifier.size(190.dp)
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = share.name,
-                            modifier = Modifier.weight(1f),
-                            fontSize = 13.sp,
-                            color = InkPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = Formatters.money(share.amount),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
+                            text = Formatters.compactMoney(total),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
                             color = InkPrimary
                         )
+                        Text(text = "за период", fontSize = 11.sp, color = InkSecondary)
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categories.forEach { share ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(share.color?.let { Color(it) } ?: InkSecondary)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = share.name,
+                                modifier = Modifier.weight(1f),
+                                fontSize = 13.sp,
+                                color = InkPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = Formatters.money(share.amount),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = InkPrimary
+                            )
+                        }
                     }
                 }
             }
@@ -276,19 +347,28 @@ private fun DonutChart(
 }
 
 @Composable
-private fun DailyChartCard(points: List<DayPoint>) {
+private fun DailyChartCard(expensePoints: List<DayPoint>, incomePoints: List<DayPoint>) {
+    var series by rememberSaveable { mutableStateOf(StatsSeries.EXPENSES) }
+    val points = if (series == StatsSeries.EXPENSES) expensePoints else incomePoints
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = CardBg
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "По дням",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = InkPrimary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "По дням",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = InkPrimary
+                )
+                SeriesToggle(selected = series, onSelect = { series = it })
+            }
             Spacer(Modifier.height(12.dp))
             DailyExpensesChart(
                 points = points,
@@ -349,42 +429,60 @@ private fun DailyExpensesChart(points: List<DayPoint>, modifier: Modifier = Modi
 }
 
 @Composable
-private fun TopCategories(categories: List<CategoryShare>) {
-    val maxAmount = categories.firstOrNull()?.amount ?: 0.0
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        categories.forEach { share ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(share.color?.let { Color(it) } ?: InkSecondary)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = share.name,
-                    fontSize = 13.sp,
-                    color = InkPrimary,
-                    modifier = Modifier.width(90.dp),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                LinearProgressIndicator(
-                    progress = { (share.amount / maxAmount).toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = share.color?.let { Color(it) } ?: AccentBlue,
-                    trackColor = CardSolid
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = Formatters.money(share.amount),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = InkPrimary
-                )
+private fun TopCategories(
+    expenseCategories: List<CategoryShare>,
+    incomeCategories: List<CategoryShare>
+) {
+    var series by rememberSaveable { mutableStateOf(StatsSeries.EXPENSES) }
+    val categories = if (series == StatsSeries.EXPENSES) expenseCategories else incomeCategories
+
+    Column {
+        SeriesToggle(selected = series, onSelect = { series = it })
+        Spacer(Modifier.height(12.dp))
+        if (categories.isEmpty()) {
+            Text(
+                text = if (series == StatsSeries.EXPENSES) "Расходов за период нет" else "Доходов за период нет",
+                fontSize = 13.sp,
+                color = InkSecondary
+            )
+            return@Column
+        }
+        val maxAmount = categories.first().amount
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            categories.forEach { share ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(share.color?.let { Color(it) } ?: InkSecondary)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = share.name,
+                        fontSize = 13.sp,
+                        color = InkPrimary,
+                        modifier = Modifier.width(90.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    LinearProgressIndicator(
+                        progress = { (share.amount / maxAmount).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = share.color?.let { Color(it) } ?: AccentBlue,
+                        trackColor = CardSolid
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = Formatters.money(share.amount),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = InkPrimary
+                    )
+                }
             }
         }
     }
